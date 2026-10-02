@@ -439,6 +439,52 @@ section { padding: 6rem 2rem; }
 
 .btn-send-wa:hover { background: var(--wa-dark); }
 
+#cotizador[hidden] { display: none; }
+
+.cot-letra {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+
+.cot-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.cot-resultado {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  background: var(--linen);
+  border-radius: 3px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cot-resultado span {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.cot-resultado b {
+  font-size: 1.15rem;
+  color: var(--jute-deep);
+}
+
+.cot-resultado .cot-full,
+.cot-resultado .cot-letra { grid-column: 1 / -1; margin-top: 0; }
+.cot-resultado .cot-full b { font-size: 1rem; }
+
+.btn-send-wa { justify-content: center; }
+
 #contacto {
   background: var(--charcoal);
   color: var(--cream);

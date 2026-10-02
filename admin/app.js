@@ -1,6 +1,6 @@
-import { load, save, reset, uid, validar } from './store.js';
+import { load, save, reset, uid, validar, remoto, necesitaLogin, login, logout, unidadesPendientes, demoraDias } from './store.js';
 
-let state = load();
+let state = null;
 let tab = 'pedidos';
 let filtroPedidos = 'activos';
 let mesCaja = hoy().slice(0, 7);
@@ -52,8 +52,15 @@ function num(v) {
   return isNaN(n) ? 0 : n;
 }
 
+function persistir() {
+  return save(state, (e) => {
+    if (e.message === 'sesion') pantallaLogin('Tu sesión venció. Volvé a entrar; lo último que cargaste quedó guardado en este navegador.');
+    else toast('No se pudo guardar en la nube. Revisá la conexión.');
+  });
+}
+
 function guardar(msg) {
-  save(state);
+  persistir();
   render();
   if (msg) toast(msg);
 }
@@ -65,6 +72,8 @@ function toast(msg) {
   clearTimeout(t._h);
   t._h = setTimeout(() => t.classList.remove('show'), 2200);
 }
+
+const demoraActual = () => demoraDias(state.settings, unidadesPendientes(state));
 
 const cliente = (id) => state.clients.find((c) => c.id === id);
 const producto = (id) => state.products.find((p) => p.id === id);
@@ -124,6 +133,7 @@ function vistaPedidos() {
     <div class="cards">
       <div class="stat"><span>Por entregar</span><strong>${activos.length}</strong></div>
       <div class="stat"><span>A cobrar</span><strong>${$$(aCobrar)}</strong></div>
+      <div class="stat"><span>Demora para pedidos nuevos</span><strong>${demoraActual()} días</strong></div>
     </div>
     <div class="toolbar">
       <div class="chips">
@@ -183,6 +193,7 @@ function filaItem(i = {}) {
     <div class="item-row">
       <select name="item-prod"><option value="">Elegí producto…</option>${opcionesProductos(sel)}</select>
       <input name="item-desc" placeholder="Descripción" value="${esc(sel === 'otro' ? i.desc : '')}" ${sel === 'otro' ? '' : 'hidden'}>
+      <label class="check"><input type="checkbox" name="item-print" ${i.print ? 'checked' : ''}> Estampado</label>
       <input name="item-qty" type="number" min="1" inputmode="numeric" value="${i.qty || 1}" aria-label="Cantidad">
       <input name="item-price" type="number" min="0" inputmode="decimal" value="${i.unitPrice ?? ''}" placeholder="$ c/u" aria-label="Precio unitario">
       <button type="button" class="x" data-act="quitar-item" aria-label="Quitar">×</button>
@@ -191,7 +202,7 @@ function filaItem(i = {}) {
 
 function formPedido(o) {
   const nuevo = !o;
-  o = o || { items: [{}], payments: [], dueDate: sumarDias(hoy(), state.settings.deliveryDays), status: 'pendiente' };
+  o = o || { items: [{}], payments: [], dueDate: sumarDias(hoy(), demoraActual()), status: 'pendiente' };
   const c = cliente(o.clientId);
   abrirDialogo(`
     <h2>${nuevo ? 'Nuevo pedido' : 'Editar pedido'}</h2>
@@ -226,11 +237,13 @@ function formPedido(o) {
         if (!v) return null;
         const qty = Math.max(1, num(r.querySelector('[name=item-qty]').value));
         const unitPrice = num(r.querySelector('[name=item-price]').value);
-        if (v === 'otro') return { desc: r.querySelector('[name=item-desc]').value.trim() || 'A medida', qty, unitPrice };
+        const print = r.querySelector('[name=item-print]').checked;
+        const conEstampado = print ? ' con estampado' : '';
+        if (v === 'otro') return { desc: (r.querySelector('[name=item-desc]').value.trim() || 'A medida') + conEstampado, qty, unitPrice, print };
         const [productId, sizeId] = v.split('|');
         const p = producto(productId);
         const s = p?.sizes.find((x) => x.id === sizeId);
-        return { productId, sizeId, desc: `${p?.name} ${s?.label}`, qty, unitPrice };
+        return { productId, sizeId, desc: `${p?.name} ${s?.label}${conEstampado}`, qty, unitPrice, print };
       })
       .filter(Boolean);
     if (!items.length) {
@@ -411,6 +424,9 @@ function vistaPrecios() {
               <button class="link danger" data-act="borrar-producto" data-id="${p.id}">borrar</button>
             </span>
           </div>
+          <label class="extra">Extra por estampado (c/u)
+            <input type="number" min="0" inputmode="decimal" value="${p.printExtra || ''}" placeholder="$" data-extra="${p.id}">
+          </label>
           <div class="precios">
             ${p.sizes
               .map((s) => `
@@ -427,10 +443,12 @@ function vistaPrecios() {
 
     <section class="panel">
       <h2>Demora de entrega</h2>
-      <label class="inline">Días que tarda un pedido nuevo
-        <input type="number" min="0" id="demora" value="${state.settings.deliveryDays}">
-      </label>
-      <p class="muted">Se usa para proponer la fecha de entrega al cargar un pedido.</p>
+      <p class="muted">Se calcula sola con las bolsas que faltan entregar: días mínimos + bolsas pendientes ÷ bolsas por día.</p>
+      <div class="row2">
+        <label>Días mínimos <input type="number" min="0" data-ajuste="baseDays" value="${state.settings.baseDays}"></label>
+        <label>Bolsas que hace por día <input type="number" min="1" data-ajuste="unitsPerDay" value="${state.settings.unitsPerDay}"></label>
+      </div>
+      <p class="demora-hoy">Hoy tiene <b>${unidadesPendientes(state)}</b> bolsas pendientes, así que un pedido nuevo sale en <b>${demoraActual()} días</b>.</p>
     </section>
   `;
 }
@@ -442,14 +460,17 @@ function aplicarAumento(f) {
   const redondeo = num(f.get('redondeo')) || 1;
   if (!valor) return;
   const prods = state.products.filter((p) => !alcance || p.id === alcance);
-  const antes = prods.flatMap((p) => p.sizes.map((s) => [p.id, s.id, s.price]));
-  prods.forEach((p) =>
-    p.sizes.forEach((s) => {
-      if (!s.price) return;
-      const nuevo = tipo === 'pct' ? s.price * (1 + valor / 100) : s.price + valor;
-      s.price = Math.max(0, Math.round(nuevo / redondeo) * redondeo);
-    })
-  );
+  const antes = prods.flatMap((p) => [[p.id, null, p.printExtra], ...p.sizes.map((s) => [p.id, s.id, s.price])]);
+  const subir = (precio) => {
+    if (!precio) return precio;
+    const nuevo = tipo === 'pct' ? precio * (1 + valor / 100) : precio + valor;
+    return Math.max(0, Math.round(nuevo / redondeo) * redondeo);
+  };
+  prods.forEach((p) => {
+    p.sizes.forEach((s) => (s.price = subir(s.price)));
+    // Un aumento en $ fijos es por bolsa; el extra de estampado sube solo con porcentaje.
+    if (tipo === 'pct') p.printExtra = subir(p.printExtra);
+  });
   const label = `${tipo === 'pct' ? valor + '%' : $$(valor)} a ${alcance ? producto(alcance).name : 'todos'}`;
   state.priceHistory.push({ date: hoy(), label, antes });
   guardar(`Aumento aplicado: ${label}`);
@@ -459,7 +480,10 @@ function deshacerAumento() {
   const h = state.priceHistory.pop();
   if (!h) return;
   h.antes.forEach(([pid, sid, price]) => {
-    const s = producto(pid)?.sizes.find((x) => x.id === sid);
+    const p = producto(pid);
+    if (!p) return;
+    if (sid === null) p.printExtra = price;
+    const s = p.sizes.find((x) => x.id === sid);
     if (s) s.price = price;
   });
   guardar('Aumento deshecho');
@@ -550,7 +574,9 @@ function vistaDatos() {
   return `
     <section class="panel">
       <h2>Copia de seguridad</h2>
-      <p class="muted">Por ahora los datos quedan guardados en este navegador. Descargá una copia cada tanto, y usala para pasar los datos a otro celular o computadora.</p>
+      <p class="muted">${remoto
+        ? 'Los datos se guardan en la nube y se ven igual desde cualquier dispositivo. Igual conviene descargar una copia cada tanto.'
+        : 'Por ahora los datos quedan guardados en este navegador. Descargá una copia cada tanto, y usala para pasar los datos a otro celular o computadora.'}</p>
       <div class="acciones">
         <button class="btn" data-act="exportar">Descargar copia</button>
         <label class="btn sec">Cargar copia <input type="file" accept="application/json" id="importar" hidden></label>
@@ -561,6 +587,7 @@ function vistaDatos() {
       <p class="muted">Borra todos los pedidos, clientes, gastos y precios de este navegador.</p>
       <button class="btn danger" data-act="borrar-todo">Borrar todo</button>
     </section>
+    ${remoto ? '<section class="panel"><h2>Sesión</h2><button class="btn sec" data-act="salir">Cerrar sesión</button></section>' : ''}
   `;
 }
 
@@ -593,14 +620,16 @@ dlgForm.addEventListener('input', (e) => {
 });
 
 dlgForm.addEventListener('change', (e) => {
-  if (!e.target.matches('[name=item-prod]')) return;
+  if (!e.target.matches('[name=item-prod],[name=item-print]')) return;
   const row = e.target.closest('.item-row');
-  const v = e.target.value;
+  const v = row.querySelector('[name=item-prod]').value;
   row.querySelector('[name=item-desc]').hidden = v !== 'otro';
   if (v && v !== 'otro') {
     const [pid, sid] = v.split('|');
-    const s = producto(pid)?.sizes.find((x) => x.id === sid);
-    row.querySelector('[name=item-price]').value = s?.price || '';
+    const p = producto(pid);
+    const s = p?.sizes.find((x) => x.id === sid);
+    const extra = row.querySelector('[name=item-print]').checked ? p.printExtra || 0 : 0;
+    row.querySelector('[name=item-price]').value = (s?.price || 0) + extra || '';
   }
   actualizarTotalForm();
 });
@@ -690,6 +719,7 @@ document.addEventListener('click', (e) => {
       }
       break;
     case 'exportar': exportar(); break;
+    case 'salir': logout(); pantallaLogin(); break;
     case 'borrar-todo':
       if (confirm('¿Seguro? Se borra todo lo cargado en este navegador.')) {
         state = reset();
@@ -712,13 +742,19 @@ app.addEventListener('change', (e) => {
     const s = producto(pid)?.sizes.find((x) => x.id === sid);
     if (s) {
       s.price = num(t.value);
-      save(state);
+      persistir();
       toast('Precio guardado');
     }
-  } else if (t.id === 'demora') {
-    state.settings.deliveryDays = Math.max(0, num(t.value));
-    save(state);
-    toast('Demora guardada');
+  } else if (t.dataset.ajuste) {
+    state.settings[t.dataset.ajuste] = Math.max(t.dataset.ajuste === 'unitsPerDay' ? 1 : 0, num(t.value));
+    guardar('Demora guardada');
+  } else if (t.dataset.extra) {
+    const p = producto(t.dataset.extra);
+    if (p) {
+      p.printExtra = num(t.value);
+      persistir();
+      toast('Extra guardado');
+    }
   } else if (t.id === 'mes') {
     mesCaja = t.value || hoy().slice(0, 7);
     render();
@@ -728,7 +764,7 @@ app.addEventListener('change', (e) => {
         const data = JSON.parse(txt);
         if (!validar(data)) throw new Error('formato');
         if (!confirm('Esto reemplaza los datos de este navegador por los de la copia. ¿Seguir?')) return;
-        state = { ...load(), ...data };
+        state = { ...state, ...data };
         guardar('Copia cargada');
       } catch {
         toast('Ese archivo no es una copia válida');
@@ -737,4 +773,43 @@ app.addEventListener('change', (e) => {
   }
 });
 
-render();
+// ---------- inicio ----------
+
+function pantallaLogin(aviso) {
+  document.body.classList.add('sin-sesion');
+  app.innerHTML = `
+    <form id="form-login" class="panel login">
+      <h2>Entrar al panel</h2>
+      ${aviso ? `<p class="aviso">${esc(aviso)}</p>` : ''}
+      <label>Email <input name="email" type="email" autocomplete="username" required></label>
+      <label>Contraseña <input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="btn">Entrar</button>
+    </form>`;
+}
+
+app.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'form-login') return;
+  e.preventDefault();
+  const f = new FormData(e.target);
+  try {
+    await login(f.get('email'), f.get('password'));
+    await iniciar();
+  } catch {
+    pantallaLogin('Email o contraseña incorrectos.');
+  }
+});
+
+async function iniciar() {
+  if (necesitaLogin()) return pantallaLogin();
+  try {
+    state = await load();
+  } catch (e) {
+    if (e.message === 'sesion') return pantallaLogin('Tu sesión venció. Volvé a entrar.');
+    app.innerHTML = '<p class="vacio">No se pudieron cargar los datos. Revisá la conexión y recargá la página.</p>';
+    return;
+  }
+  document.body.classList.remove('sin-sesion');
+  render();
+}
+
+iniciar();

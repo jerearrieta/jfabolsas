@@ -14,6 +14,7 @@
   <ul class="nav-links">
     <li><a href="#inicio">Inicio</a></li>
     <li><a href="#productos">Productos</a></li>
+    <li data-solo-cotizador hidden><a href="#cotizador">Cotizá</a></li>
     <li><a href="#pedido-especial">A medida</a></li>
     <li><a href="#contacto">Contacto</a></li>
   </ul>
@@ -180,6 +181,47 @@
   </div>
 </section>
 
+<section id="cotizador" hidden>
+  <div class="section-inner">
+    <div class="pedido-layout">
+      <div>
+        <span class="section-label">Presupuesto al instante</span>
+        <h2 class="section-title">Cotizá tu pedido</h2>
+        <p class="section-sub" style="margin-bottom: 0;">Elegí el producto, la medida y la cantidad. Te mostramos el precio y cuándo podemos entregarlo, y nos mandás el pedido armado por WhatsApp.</p>
+        <p class="cot-letra">Precios actualizados al <span id="cot-actualizado">día de hoy</span>. La demora depende de los pedidos que tenemos en curso, y te la confirmamos por WhatsApp.</p>
+      </div>
+      <div class="pedido-form-card">
+        <div class="form-group">
+          <label for="cot-producto">Producto</label>
+          <select id="cot-producto"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cot-medida">Medida</label>
+            <select id="cot-medida"></select>
+          </div>
+          <div class="form-group">
+            <label for="cot-cantidad">Cantidad</label>
+            <input id="cot-cantidad" type="number" min="1" value="10" inputmode="numeric">
+          </div>
+        </div>
+        <label class="cot-check"><input id="cot-estampado" type="checkbox"> Con estampado (logo o diseño)</label>
+        <div class="cot-resultado">
+          <div><span>Precio por unidad</span><b id="cot-unitario"></b></div>
+          <div><span>Total</span><b id="cot-total"></b></div>
+          <div class="cot-full"><span>Entrega estimada</span><b id="cot-demora"></b></div>
+          <p id="cot-nota-estampado" class="cot-letra" hidden>El estampado de este producto se cotiza aparte.</p>
+        </div>
+        <div class="form-group">
+          <label for="cot-nombre">Tu nombre (opcional)</label>
+          <input id="cot-nombre" type="text" placeholder="Tu nombre">
+        </div>
+        <a id="cot-enviar" class="btn-send-wa" target="_blank" rel="noopener">Pedir por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section id="pedido-especial">
   <div class="section-inner">
     <div class="pedido-layout">
@@ -275,6 +317,7 @@ function enviarPedido() {
   window.open(url, '_blank');
 }
 </script>
+<script type="module" src="cotizador.js"></script>
 
 </body>
 </html>
