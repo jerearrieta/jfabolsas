@@ -40,6 +40,7 @@ before(async () => {
   await new Promise((r) => supabase.listen(0, r));
   process.env.SUPABASE_URL = `http://localhost:${supabase.address().port}`;
   process.env.SUPABASE_ANON_KEY = 'anon';
+  process.env.CLIENT_ORIGIN = 'https://jfabolsas.vercel.app, https://jfabolsas-*-equipo.vercel.app';
   process.env.VERCEL = '1'; // que src/index.js no levante su propio servidor
   const { default: app } = await import('../src/index.js');
   api = app.listen(0);
@@ -103,4 +104,13 @@ test('guardar el panel actualiza también los datos públicos', async () => {
 test('rechaza datos con formato inválido', async () => {
   const r = await pedir('/estado', { token: 'tok', method: 'PUT', body: { hola: 1 } });
   assert.equal(r.status, 400);
+});
+
+test('deja entrar a la página y a sus vistas previas, a nadie más', async () => {
+  const origen = async (o) =>
+    (await fetch(base + '/salud', { headers: { origin: o } })).headers.get('access-control-allow-origin');
+  assert.equal(await origen('https://jfabolsas.vercel.app'), 'https://jfabolsas.vercel.app');
+  assert.equal(await origen('https://jfabolsas-git-rama-equipo.vercel.app'), 'https://jfabolsas-git-rama-equipo.vercel.app');
+  assert.equal(await origen('https://otra.vercel.app'), null);
+  assert.equal(await origen('https://jfabolsas-x.vercel.app.malo.com'), null);
 });
