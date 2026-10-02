@@ -17,7 +17,7 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   background: var(--cream);
   color: var(--text);
   font-size: 16px;
@@ -39,7 +39,7 @@ nav {
 }
 
 .nav-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--jute-deep);
@@ -121,7 +121,7 @@ nav {
 }
 
 .hero h1 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: clamp(2.8rem, 5vw, 4.2rem);
   font-weight: 700;
   line-height: 1.15;
@@ -207,7 +207,7 @@ nav {
 }
 
 .hero-card h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: 1rem;
   font-weight: 600;
   color: var(--jute-deep);
@@ -234,7 +234,7 @@ section { padding: 6rem 2rem; }
 }
 
 .section-title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: clamp(1.8rem, 3vw, 2.6rem);
   font-weight: 700;
   color: var(--charcoal);
@@ -279,7 +279,7 @@ section { padding: 6rem 2rem; }
 .product-header-icon { font-size: 1.4rem; }
 
 .product-header h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--linen);
@@ -377,7 +377,7 @@ section { padding: 6rem 2rem; }
 }
 
 .pedido-form-card h4 {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-playfair), serif;
   font-size: 1.2rem;
   color: var(--charcoal);
   margin-bottom: 1.5rem;
@@ -405,7 +405,7 @@ section { padding: 6rem 2rem; }
   border: 1px solid rgba(196,169,106,0.5);
   border-radius: 3px;
   padding: 10px 14px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 0.9rem;
   color: var(--text);
   outline: none;
@@ -439,7 +439,6 @@ section { padding: 6rem 2rem; }
 
 .btn-send-wa:hover { background: var(--wa-dark); }
 
-#cotizador[hidden] { display: none; }
 
 .cot-letra {
   font-size: 0.85rem;

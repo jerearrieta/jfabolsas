@@ -27,6 +27,10 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from admins where email = auth.jwt() ->> 'email');
 $$;
 
+-- Solo la usan las reglas de abajo: nadie sin sesión puede llamarla.
+revoke execute on function es_admin() from public, anon;
+grant execute on function es_admin() to authenticated;
+
 drop policy if exists "admins usan el panel" on estado;
 create policy "admins usan el panel" on estado
   for all to authenticated using (es_admin()) with check (es_admin());
