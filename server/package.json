@@ -1,0 +1,20 @@
+{
+  "name": "jfabolsas-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "API de JFA Bolsas: pedidos, precios y cotizador sobre Supabase",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
+  }
+}
