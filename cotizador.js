@@ -12,7 +12,7 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 async function leerDatos() {
   if (SUPABASE_URL && SUPABASE_ANON_KEY) {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/publico?id=eq.1&select=data`, {
-      headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      headers: { apikey: SUPABASE_ANON_KEY },
     });
     if (!r.ok) return null;
     return (await r.json())[0]?.data || null;

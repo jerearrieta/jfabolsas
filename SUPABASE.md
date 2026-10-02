@@ -6,7 +6,7 @@ Sin esto el panel guarda los datos solo en el navegador donde se cargan. Con Sup
 2. **SQL Editor → New query**: pegar todo `supabase.sql`, cambiar `EMAIL_DE_TU_PAPA@gmail.com` por el email real y tocar **Run**.
 3. **Authentication → Users → Add user → Create new user**: ese mismo email y una contraseña. Marcar "Auto Confirm User".
 4. **Authentication → Sign In / Providers**: desactivar **Allow new users to sign up**, así nadie más puede crearse una cuenta.
-5. **Project Settings → API**: copiar la **Project URL** y la **anon public key** en `config.js`:
+5. Copiar la **Project URL** (en **Project Settings → Data API**) y la clave pública (en **Project Settings → API Keys**: la **anon public** de la pestaña "Legacy API Keys", que empieza con `eyJ`, o si no aparece, la **Publishable key**, que empieza con `sb_publishable_`) en `config.js`:
 
    ```js
    export const SUPABASE_URL = 'https://xxxx.supabase.co';
